@@ -1105,25 +1105,35 @@ runs:
             fi
             ;;
           "v2.2.0"|"v2.3.0")
+            # Explicitly fix the OnePlus Snapdragon 8 Elite code syntax before patching begins
+            set -x
+            TARGET_DISPATCH="$KERNEL_PLATFORM_FOLDER/common/kernel/supercall/dispatch.c"
+            if [ -f "$TARGET_DISPATCH" ]; then
+              echo "Aligning dispatch.c layout patterns to match expectations..."
+              sed -i 's/static inline void /void /g' "$TARGET_DISPATCH" || true
+            fi
+            set +x
+
             if [ "${{ inputs.ksu_type }}" = "KSUN" ]; then
               cd "$KSUN_FOLDER"
-              patch -p1 --forward --fuzz=3 < "$SUSFS_FOLDER/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch" || true
+              patch -p1 --forward < "$SUSFS_FOLDER/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch" || true
+              
+              # Standard loop parsing for secondary community fix patches
               for file in $(find ./kernel -maxdepth 2 -name "*.rej" -exec basename {} .rej \;); do
                 echo "Patching file: $file with fix_$file.patch"
-                patch -p1 --forward --fuzz=3 < "$KERNEL_PATCHES_FOLDER/next/susfs_fix_patches/$susfs_version/fix_$file.patch" || true
+                if [ -f "$KERNEL_PATCHES_FOLDER/next/susfs_fix_patches/$susfs_version/fix_$file.patch" ]; then
+                  patch -p1 --forward < "$KERNEL_PATCHES_FOLDER/next/susfs_fix_patches/$susfs_version/fix_$file.patch"
+                fi
               done
+              
               echo "Patching Hook Mode!"
-              patch -p1 --forward --fuzz=3 < "$KERNEL_PATCHES_FOLDER/next/susfs_fix_patches/$susfs_version/overwrite_hook_mode.patch" || true
+              patch -p1 --forward < "$KERNEL_PATCHES_FOLDER/next/susfs_fix_patches/$susfs_version/overwrite_hook_mode.patch" || true
               echo "Patching KSU_TOOLKIT Support for SusFS kernel!"
-              patch -p1 --forward --fuzz=3 < "$KERNEL_PATCHES_FOLDER/next/susfs_fix_patches/$susfs_version/ksu_toolkit.patch" || true
+              patch -p1 --forward < "$KERNEL_PATCHES_FOLDER/next/susfs_fix_patches/$susfs_version/ksu_toolkit.patch" || true
             else
               cd "$KSU_FOLDER"
-              patch -p1 --forward --fuzz=3 < "$SUSFS_FOLDER/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch" || true
+              patch -p1 --forward < "$SUSFS_FOLDER/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch" || true
             fi
-
-            # Clean up temporary .rej files so the strict error check doesn't crash the runner
-            find "$KSUN_FOLDER" -name "*.rej" -delete || true
-            
             ;;
           *)
             echo "::error::Unsupported SUSFS version: $susfs_version"

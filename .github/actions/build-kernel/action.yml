@@ -1120,6 +1120,18 @@ runs:
               cd "$KSU_FOLDER"
               patch -p1 --forward < "$SUSFS_FOLDER/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch" || true
             fi
+
+            # Dynamic on-the-fly line correction to prevent Hunk FAILED errors
+            set -x
+            TARGET_DISPATCH="$KERNEL_PLATFORM_FOLDER/common/kernel/supercall/dispatch.c"
+            if [ -f "$TARGET_DISPATCH" ]; then
+              echo "Aligning dispatch.c text formatting..."
+              sed -i 's/static inline void /void /g' "$TARGET_DISPATCH" || true
+            else
+              echo "Warning: dispatch.c not found at $TARGET_DISPATCH"
+            fi
+            set +x
+
             ;;
           *)
             echo "::error::Unsupported SUSFS version: $susfs_version"

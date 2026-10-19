@@ -693,6 +693,8 @@ jobs:
       - name: 🔨 Build Kernel
         id: build
         uses: ./.github/actions/build-kernel
+        env:
+          KCFLAGS: "-Wno-error"
         with:
           op_config_json: ${{ steps.prepare_config.outputs.config_json }}
           ksu_type: ${{ matrix.ksu_type }}

@@ -1117,9 +1117,9 @@ runs:
               echo "Patching KSU_TOOLKIT Support for SusFS kernel!"
               patch -p1 --forward < "$KERNEL_PATCHES_FOLDER/next/susfs_fix_patches/$susfs_version/ksu_toolkit.patch"
             else
-              # Clean stable path for standard KernelSU
+              # Enable fuzzing on standard KernelSU to safely skip over OnePlus timeline drifts
               cd "$KSU_FOLDER"
-              patch -p1 --forward < "$SUSFS_FOLDER/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch" || true
+              patch -p1 --forward --fuzz=3 < "$SUSFS_FOLDER/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch" || true
             fi
             ;;
           *)

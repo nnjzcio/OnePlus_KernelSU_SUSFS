@@ -1302,6 +1302,7 @@ runs:
         CONFIG_KSU_SUSFS_OPEN_REDIRECT=y
         CONFIG_KSU_SUSFS_SUS_MAP=y
         CONFIG_KSU_SUSFS_SUS_SU=n
+        CONFIG_KSU_SULOG=n
         EOF
         
         echo "::endgroup::"

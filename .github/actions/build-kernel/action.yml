@@ -1952,7 +1952,6 @@ runs:
         echo "🔢 SOURCE_DATE_EPOCH: $SOURCE_DATE_EPOCH"
         echo "👤 Build user: $KBUILD_BUILD_USER"
         echo "🖥️  Build host: $KBUILD_BUILD_HOST"
-        
         export CC="ccache clang"
         export CXX="ccache clang++"
         export HOSTCC="ccache clang"
@@ -2022,9 +2021,7 @@ runs:
             ;;
         esac
         
-        
         make LD="$COMMON_KERNEL_FOLDER/ld-wrapper" HOSTLD="$COMMON_KERNEL_FOLDER/ld-wrapper" O="$OUT" olddefconfig
-        
         KCFLAGS="$KCFLAGS -Wno-error -pipe ${KCFLAGS_EXTRA}"
         KCPPFLAGS="$KCPPFLAGS -DCONFIG_OPTIMIZE_INLINING"
         
@@ -2053,6 +2050,9 @@ runs:
           make LD="$COMMON_KERNEL_FOLDER/ld-wrapper" HOSTLD="$COMMON_KERNEL_FOLDER/ld-wrapper" -C "$COMMON_KERNEL_FOLDER" O="$OUT" headers_install prepare 2>&1 | head -n 20 || true
           echo ""
         fi
+        
+        # Safe-checking parameter mapping to neutralize a blank string from crashing the make engine
+        CONFIG_FAKE_DISABLE="${CONFIG_FAKE_DISABLE:-}"
         
         BUILD_START=$(date +%s)
         set -o pipefail

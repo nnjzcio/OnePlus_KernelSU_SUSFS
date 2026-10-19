@@ -1146,11 +1146,11 @@ runs:
               patch -p1 --forward < "$SUSFS_FOLDER/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch" || true
             fi
 
-            # Bulletproof top-of-file injection: Guarantees declarations are present before compilation
+            # Bulletproof top-of-file injection with types header included
             for init_file in $(find "$KSUN_FOLDER" -name "init.c"); do
               if [ -f "$init_file" ]; then
                 echo "Injecting explicit global SUSFS declarations into $init_file..."
-                sed -i '1s/^/void ksu_syscall_hook_manager_init(void);\nvoid ksu_syscall_hook_manager_exit(void);\nvoid ksu_lsm_hook_init(void);\nvoid ksu_lsm_hook_exit(void);\nextern bool ksu_late_loaded;\n/' "$init_file" || true
+                sed -i '1s/^/#include <linux\/types.h>\nvoid ksu_syscall_hook_manager_init(void);\nvoid ksu_syscall_hook_manager_exit(void);\nvoid ksu_lsm_hook_init(void);\nvoid ksu_lsm_hook_exit(void);\nextern bool ksu_late_loaded;\n/' "$init_file" || true
               fi
             done
             ;;

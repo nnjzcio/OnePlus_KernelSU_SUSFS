@@ -1105,54 +1105,22 @@ runs:
             fi
             ;;
           "v2.2.0"|"v2.3.0")
-            # Force the runner to navigate straight to the root folder to apply the formatting fix
-            set -x
-            cd "$KERNEL_PLATFORM_FOLDER"
-            TARGET_DISPATCH="common/kernel/supercall/dispatch.c"
-            if [ -f "$TARGET_DISPATCH" ]; then
-              echo "Found target dispatch file. Aligning text formatting..."
-              sed -i 's/static inline void /void /g' "$TARGET_DISPATCH" || true
-              echo "Formatting fix applied successfully."
-            else
-              echo "Error: Could not locate dispatch.c at global path."
-            fi
-            set +x
-
             if [ "${{ inputs.ksu_type }}" = "KSUN" ]; then
               cd "$KSUN_FOLDER"
               patch -p1 --forward < "$SUSFS_FOLDER/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch" || true
-              
-              # Corrected path search: Scan the exact folder structure where .rej files are generated
-              for rej_path in $(find . -name "*.rej"); do
-                filename=$(basename "$rej_path" .rej)
-                echo "Found patch rejection note for: $filename"
-                
-                # Check for standard .patch naming variations in the repository
-                if [ -f "$KERNEL_PATCHES_FOLDER/next/susfs_fix_patches/$susfs_version/fix_$filename.patch" ]; then
-                  echo "Applying fix_$filename.patch..."
-                  patch -p1 --forward < "$KERNEL_PATCHES_FOLDER/next/susfs_fix_patches/$susfs_version/fix_$filename.patch" || true
-                elif [ -f "$KERNEL_PATCHES_FOLDER/next/susfs_fix_patches/$susfs_version/fix_$filename.c.patch" ]; then
-                  echo "Applying fix_$filename.c.patch..."
-                  patch -p1 --forward < "$KERNEL_PATCHES_FOLDER/next/susfs_fix_patches/$susfs_version/fix_$filename.c.patch" || true
-                fi
+              for file in $(find ./kernel -maxdepth 2 -name "*.rej" -exec basename {} .rej \;); do
+                echo "Patching file: $file with fix_$file.patch"
+                patch -p1 --forward < "$KERNEL_PATCHES_FOLDER/next/susfs_fix_patches/$susfs_version/fix_$file.patch"
               done
-              
               echo "Patching Hook Mode!"
-              patch -p1 --forward < "$KERNEL_PATCHES_FOLDER/next/susfs_fix_patches/$susfs_version/overwrite_hook_mode.patch" || true
+              patch -p1 --forward < "$KERNEL_PATCHES_FOLDER/next/susfs_fix_patches/$susfs_version/overwrite_hook_mode.patch"
               echo "Patching KSU_TOOLKIT Support for SusFS kernel!"
-              patch -p1 --forward < "$KERNEL_PATCHES_FOLDER/next/susfs_fix_patches/$susfs_version/ksu_toolkit.patch" || true
+              patch -p1 --forward < "$KERNEL_PATCHES_FOLDER/next/susfs_fix_patches/$susfs_version/ksu_toolkit.patch"
             else
+              # Clean stable path for standard KernelSU
               cd "$KSU_FOLDER"
               patch -p1 --forward < "$SUSFS_FOLDER/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch" || true
             fi
-
-            # Bulletproof top-of-file injection with types header included
-            for init_file in $(find "$KSUN_FOLDER" -name "init.c"); do
-              if [ -f "$init_file" ]; then
-                echo "Injecting explicit global SUSFS declarations into $init_file..."
-                sed -i '1s/^/#include <linux\/types.h>\nvoid ksu_syscall_hook_manager_init(void);\nvoid ksu_syscall_hook_manager_exit(void);\nvoid ksu_lsm_hook_init(void);\nvoid ksu_lsm_hook_exit(void);\nextern bool ksu_late_loaded;\n/' "$init_file" || true
-              fi
-            done
             ;;
           *)
             echo "::error::Unsupported SUSFS version: $susfs_version"

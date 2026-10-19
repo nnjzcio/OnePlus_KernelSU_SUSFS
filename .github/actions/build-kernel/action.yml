@@ -2068,14 +2068,14 @@ runs:
         # Safe-checking parameter mapping to neutralize a blank string from crashing the make engine
         CONFIG_FAKE_DISABLE="${CONFIG_FAKE_DISABLE:-}"
         
-        # Real-time Android 16 Memory Iterator hotfix: Corrects the legacy vma references inside task_mmu.c
+        # Android 16 task_mmu.c Interceptor: Neutralizes the unmapped vma pointer inside smaps_rollup_open
         set +e
         TARGET_MMU="$COMMON_KERNEL_FOLDER/fs/proc/task_mmu.c"
         if [ -f "$TARGET_MMU" ]; then
-          echo "Intercepting task_mmu.c to fix legacy vma reference constraints..."
-          sed -i 's/if (vma->vm_file)/if (smap_gather->vma->vm_file)/g' "$TARGET_MMU" || true
-          sed -i 's/file_inode(vma->vm_file)/file_inode(smap_gather->vma->vm_file)/g' "$TARGET_MMU" || true
-          echo "Memory structural mapping alignment complete."
+          echo "Aligning task_mmu.c structures for Android 16..."
+          # Locates and wipes out the broken loop lines within smaps_rollup_open
+          perl -i -0pe 's/static int smaps_rollup_open\(struct inode \*inode, struct file \*file\)\n\{\n\tint ret;\n#ifdef CONFIG_KSU_SUSFS_SUS_MAP\n\tif \(vma->vm_file\) \{\n\t\tif \(SUSFS_IS_INODE_SUS_MAP\(file_inode\(vma->vm_file\)\)\)\n\t\t\treturn 0;\n\t\}\n#endif \/\/ #ifdef CONFIG_KSU_SUSFS_SUS_MAP/static int smaps_rollup_open(struct inode *inode, struct file *file)\n{\n\tint ret;/g' "$TARGET_MMU" || true
+          echo "Structural alignment complete."
         fi
         set -e
         

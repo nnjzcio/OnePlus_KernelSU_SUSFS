@@ -703,7 +703,6 @@ jobs:
           clean: ${{ inputs.clean_build }}
           debug: ${{ inputs.debug }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          EXTRA_MAKE_ARGS: "KCFLAGS=-Wno-error"
 
       - name: 📊 Build statistics
         id: build-stat

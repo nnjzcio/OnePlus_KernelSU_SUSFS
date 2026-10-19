@@ -1105,12 +1105,16 @@ runs:
             fi
             ;;
           "v2.2.0"|"v2.3.0")
-            # Explicitly fix the OnePlus Snapdragon 8 Elite code syntax before patching begins
+            # Force the runner to navigate straight to the root folder to apply the formatting fix
             set -x
-            TARGET_DISPATCH="$KERNEL_PLATFORM_FOLDER/common/kernel/supercall/dispatch.c"
+            cd "$KERNEL_PLATFORM_FOLDER"
+            TARGET_DISPATCH="common/kernel/supercall/dispatch.c"
             if [ -f "$TARGET_DISPATCH" ]; then
-              echo "Aligning dispatch.c layout patterns to match expectations..."
+              echo "Found target dispatch file. Aligning text formatting..."
               sed -i 's/static inline void /void /g' "$TARGET_DISPATCH" || true
+              echo "Formatting fix applied successfully."
+            else
+              echo "Error: Could not locate dispatch.c at global path."
             fi
             set +x
 

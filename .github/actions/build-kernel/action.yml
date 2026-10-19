@@ -1122,22 +1122,18 @@ runs:
               cd "$KSUN_FOLDER"
               patch -p1 --forward < "$SUSFS_FOLDER/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch" || true
               
-              # Manual hotfix: Pre-patch the missing allowlist elements if the file exists
-              if [ -f "kernel/allowlist.c" ]; then
-                echo "Applying manual allowlist header injection..."
-                sed -i '1s/^/#include <linux\/susfs.h>\nextern bool ksu_late_loaded;\n/' kernel/allowlist.c || true
-              elif [ -f "core/allowlist.c" ]; then
-                echo "Applying manual allowlist header injection to core..."
-                sed -i '1s/^/#include <linux\/susfs.h>\nextern bool ksu_late_loaded;\n/' core/allowlist.c || true
-              fi
-
-              # Standard loop parsing for secondary community fix patches
-              for file in $(find ./kernel ./core -maxdepth 2 -name "*.rej" -exec basename {} .rej \;); do
-                echo "Patching file: $file with fix_$file.patch"
-                if [ -f "$KERNEL_PATCHES_FOLDER/next/susfs_fix_patches/$susfs_version/fix_$file.patch" ]; then
-                  patch -p1 --forward < "$KERNEL_PATCHES_FOLDER/next/susfs_fix_patches/$susfs_version/fix_$file.patch" || true
-                elif [ -f "$KERNEL_PATCHES_FOLDER/next/susfs_fix_patches/$susfs_version/fix_$file.c.patch" ]; then
-                  patch -p1 --forward < "$KERNEL_PATCHES_FOLDER/next/susfs_fix_patches/$susfs_version/fix_$file.c.patch" || true
+              # Corrected path search: Scan the exact folder structure where .rej files are generated
+              for rej_path in $(find . -name "*.rej"); do
+                filename=$(basename "$rej_path" .rej)
+                echo "Found patch rejection note for: $filename"
+                
+                # Check for standard .patch naming variations in the repository
+                if [ -f "$KERNEL_PATCHES_FOLDER/next/susfs_fix_patches/$susfs_version/fix_$filename.patch" ]; then
+                  echo "Applying fix_$filename.patch..."
+                  patch -p1 --forward < "$KERNEL_PATCHES_FOLDER/next/susfs_fix_patches/$susfs_version/fix_$filename.patch" || true
+                elif [ -f "$KERNEL_PATCHES_FOLDER/next/susfs_fix_patches/$susfs_version/fix_$filename.c.patch" ]; then
+                  echo "Applying fix_$filename.c.patch..."
+                  patch -p1 --forward < "$KERNEL_PATCHES_FOLDER/next/susfs_fix_patches/$susfs_version/fix_$filename.c.patch" || true
                 fi
               done
               
@@ -1150,11 +1146,11 @@ runs:
               patch -p1 --forward < "$SUSFS_FOLDER/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch" || true
             fi
 
-            # Exhaustive check to safely inject header declarations into the exact file being compiled
-            for init_file in "$KSUN_FOLDER/kernel/init.c" "$KSUN_FOLDER/core/init.c"; do
+            # Bulletproof top-of-file injection: Guarantees declarations are present before compilation
+            for init_file in $(find "$KSUN_FOLDER" -name "init.c"); do
               if [ -f "$init_file" ]; then
-                echo "Injecting missing SUSFS declarations into $init_file..."
-                sed -i 's/void ksu_syscall_hook_init(void);/void ksu_syscall_hook_init(void);\nvoid ksu_syscall_hook_manager_init(void);\nvoid ksu_syscall_hook_manager_exit(void);\nvoid ksu_lsm_hook_exit(void);\nextern bool ksu_late_loaded;/g' "$init_file" || true
+                echo "Injecting explicit global SUSFS declarations into $init_file..."
+                sed -i '1s/^/void ksu_syscall_hook_manager_init(void);\nvoid ksu_syscall_hook_manager_exit(void);\nvoid ksu_lsm_hook_init(void);\nvoid ksu_lsm_hook_exit(void);\nextern bool ksu_late_loaded;\n/' "$init_file" || true
               fi
             done
             ;;

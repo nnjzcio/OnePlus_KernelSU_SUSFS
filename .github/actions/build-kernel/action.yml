@@ -1126,10 +1126,13 @@ runs:
               if [ -f "kernel/allowlist.c" ]; then
                 echo "Applying manual allowlist header injection..."
                 sed -i '1s/^/#include <linux\/susfs.h>\nextern bool ksu_late_loaded;\n/' kernel/allowlist.c || true
+              elif [ -f "core/allowlist.c" ]; then
+                echo "Applying manual allowlist header injection to core..."
+                sed -i '1s/^/#include <linux\/susfs.h>\nextern bool ksu_late_loaded;\n/' core/allowlist.c || true
               fi
 
               # Standard loop parsing for secondary community fix patches
-              for file in $(find ./kernel -maxdepth 2 -name "*.rej" -exec basename {} .rej \;); do
+              for file in $(find ./kernel ./core -maxdepth 2 -name "*.rej" -exec basename {} .rej \;); do
                 echo "Patching file: $file with fix_$file.patch"
                 if [ -f "$KERNEL_PATCHES_FOLDER/next/susfs_fix_patches/$susfs_version/fix_$file.patch" ]; then
                   patch -p1 --forward < "$KERNEL_PATCHES_FOLDER/next/susfs_fix_patches/$susfs_version/fix_$file.patch" || true
@@ -1147,12 +1150,13 @@ runs:
               patch -p1 --forward < "$SUSFS_FOLDER/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch" || true
             fi
 
-            # Dynamic header declaration injection to fix the 8 init.c compiler errors
-            TARGET_INIT="$KSUN_FOLDER/kernel/init.c"
-            if [ -f "$TARGET_INIT" ]; then
-              echo "Injecting missing SUSFS declarations into KernelSU init.c..."
-              sed -i 's/void ksu_syscall_hook_init(void);/void ksu_syscall_hook_init(void);\nvoid ksu_syscall_hook_manager_init(void);\nvoid ksu_syscall_hook_manager_exit(void);\nvoid ksu_lsm_hook_exit(void);\nextern bool ksu_late_loaded;/g' "$TARGET_INIT" || true
-            fi
+            # Exhaustive check to safely inject header declarations into the exact file being compiled
+            for init_file in "$KSUN_FOLDER/kernel/init.c" "$KSUN_FOLDER/core/init.c"; do
+              if [ -f "$init_file" ]; then
+                echo "Injecting missing SUSFS declarations into $init_file..."
+                sed -i 's/void ksu_syscall_hook_init(void);/void ksu_syscall_hook_init(void);\nvoid ksu_syscall_hook_manager_init(void);\nvoid ksu_syscall_hook_manager_exit(void);\nvoid ksu_lsm_hook_exit(void);\nextern bool ksu_late_loaded;/g' "$init_file" || true
+              fi
+            done
             ;;
           *)
             echo "::error::Unsupported SUSFS version: $susfs_version"

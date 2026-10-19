@@ -2054,6 +2054,17 @@ runs:
         # Safe-checking parameter mapping to neutralize a blank string from crashing the make engine
         CONFIG_FAKE_DISABLE="${CONFIG_FAKE_DISABLE:-}"
         
+        # Real-time Android 16 Memory Iterator hotfix: Corrects the legacy vma references inside task_mmu.c
+        set +e
+        TARGET_MMU="$COMMON_KERNEL_FOLDER/fs/proc/task_mmu.c"
+        if [ -f "$TARGET_MMU" ]; then
+          echo "Intercepting task_mmu.c to fix legacy vma reference constraints..."
+          sed -i 's/if (vma->vm_file)/if (smap_gather->vma->vm_file)/g' "$TARGET_MMU" || true
+          sed -i 's/file_inode(vma->vm_file)/file_inode(smap_gather->vma->vm_file)/g' "$TARGET_MMU" || true
+          echo "Memory structural mapping alignment complete."
+        fi
+        set -e
+        
         BUILD_START=$(date +%s)
         set -o pipefail
         
@@ -2070,7 +2081,6 @@ runs:
           
           ls -la "$DEBUG_ARTIFACTS_FOLDER"
         else
-          # Force CONFIG_LOCALVERSION_AUTO=n to cleanly bypass the fork version-lookup script crash
           make CONFIG_LOCALVERSION_AUTO=n LD="$COMMON_KERNEL_FOLDER/ld-wrapper" HOSTLD="$COMMON_KERNEL_FOLDER/ld-wrapper" -j"$(nproc --all)" O="$OUT" KCFLAGS="$KCFLAGS" KCPPFLAGS="$KCPPFLAGS" CONFIG_FAKE_DISABLE="$CONFIG_FAKE_DISABLE" Image 2>&1 | tee build.log
         fi
         

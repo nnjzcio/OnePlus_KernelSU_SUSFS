@@ -2073,9 +2073,18 @@ runs:
         TARGET_MMU="$COMMON_KERNEL_FOLDER/fs/proc/task_mmu.c"
         if [ -f "$TARGET_MMU" ]; then
           echo "Aligning task_mmu.c structures for Android 16..."
-          # Locates and wipes out the broken loop lines within smaps_rollup_open
           perl -i -0pe 's/static int smaps_rollup_open\(struct inode \*inode, struct file \*file\)\n\{\n\tint ret;\n#ifdef CONFIG_KSU_SUSFS_SUS_MAP\n\tif \(vma->vm_file\) \{\n\t\tif \(SUSFS_IS_INODE_SUS_MAP\(file_inode\(vma->vm_file\)\)\)\n\t\t\treturn 0;\n\t\}\n#endif \/\/ #ifdef CONFIG_KSU_SUSFS_SUS_MAP/static int smaps_rollup_open(struct inode *inode, struct file *file)\n{\n\tint ret;/g' "$TARGET_MMU" || true
-          echo "Structural alignment complete."
+        fi
+
+        # Android 16 KernelSU Next sucompat Interceptor: Resolves duplicate get_user_arg_ptr definitions
+        TARGET_SUCOMPAT="$KERNEL_PLATFORM_FOLDER/KernelSU-Next/kernel/feature/sucompat.c"
+        if [ -f "$TARGET_SUCOMPAT" ]; then
+          echo "Aligning KernelSU Next sucompat.c structures for Android 16..."
+          # Inject missing architecture function prototype header mapping
+          sed -i '1s/^/extern const char __user *userspace_stack_buffer(const void *buffer, size_t len);\n/' "$TARGET_SUCOMPAT" || true
+          # Comment out the duplicate block function to resolve the redefinition crash
+          perl -i -0pe 's/static const char __user \*get_user_arg_ptr\(struct user_arg_ptr argv, int nr\)\n\{\n\treturn argv.ptr \+ nr \* sizeof\(char \*\);\n\/\*\(const char __user \*\)argv\.ptr\*\/;\n\}/ \/\/ Handled natively by Android 16 runtime environment headers/g' "$TARGET_SUCOMPAT" || true
+          echo "sucompat alignment complete."
         fi
         set -e
         

@@ -2093,6 +2093,16 @@ runs:
           echo "sucompat alignment complete."
         fi
         set -e
+
+        # Android 16 KernelSU Next supercall Interceptor: Resolves missing ksu_late_loaded declarations
+        TARGET_SUPERCALL_DISPATCH="$KERNEL_PLATFORM_FOLDER/KernelSU-Next/kernel/supercall/dispatch.c"
+        if [ -f "$TARGET_SUPERCALL_DISPATCH" ]; then
+          echo "Aligning KernelSU Next supercall/dispatch.c structures for Android 16..."
+          # Inject mandatory type header and flag prototype mapping right onto line 1
+          sed -i '1s/^/#include <linux\/types.h>\nextern bool ksu_late_loaded;\n/' "$TARGET_SUPERCALL_DISPATCH" || true
+          echo "supercall/dispatch alignment complete."
+        fi
+        set -e
         
         BUILD_START=$(date +%s)
         set -o pipefail

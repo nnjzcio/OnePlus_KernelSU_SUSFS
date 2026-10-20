@@ -2080,10 +2080,11 @@ runs:
         TARGET_SUCOMPAT="$KERNEL_PLATFORM_FOLDER/KernelSU-Next/kernel/feature/sucompat.c"
         if [ -f "$TARGET_SUCOMPAT" ]; then
           echo "Aligning KernelSU Next sucompat.c structures for Android 16..."
-          # Inject missing architecture function prototype header mapping
-          sed -i '1s/^/extern const char __user *userspace_stack_buffer(const void *buffer, size_t len);\n/' "$TARGET_SUCOMPAT" || true
-          # Comment out the duplicate block function to resolve the redefinition crash
-          perl -i -0pe 's/static const char __user \*get_user_arg_ptr\(struct user_arg_ptr argv, int nr\)\n\{\n\treturn argv.ptr \+ nr \* sizeof\(char \*\);\n\/\*\(const char __user \*\)argv\.ptr\*\/;\n\}/ \/\/ Handled natively by Android 16 runtime environment headers/g' "$TARGET_SUCOMPAT" || true
+          # Inject mandatory type definition map right at the top header layer
+          sed -i '1s/^/#include <linux\/types.h>\nextern const char __user *userspace_stack_buffer(const void *buffer, size_t len);\n/' "$TARGET_SUCOMPAT" || true
+          
+          # Precision line interceptor: Safely block out the entire duplicate function block
+          sed -i '/get_user_arg_ptr/,/^}/ { s/^/\/\/ / }' "$TARGET_SUCOMPAT" || true
           echo "sucompat alignment complete."
         fi
         set -e

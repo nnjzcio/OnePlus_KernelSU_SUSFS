@@ -2080,11 +2080,13 @@ runs:
         TARGET_SUCOMPAT="$KERNEL_PLATFORM_FOLDER/KernelSU-Next/kernel/feature/sucompat.c"
         if [ -f "$TARGET_SUCOMPAT" ]; then
           echo "Aligning KernelSU Next sucompat.c structures for Android 16..."
-          # Inject mandatory type definition map right at the top header layer
-          sed -i '1s/^/#include <linux\/types.h>\nextern const char __user *userspace_stack_buffer(const void *buffer, size_t len);\n/' "$TARGET_SUCOMPAT" || true
           
-          # Precision line interceptor: Safely block out the entire duplicate function block
-          sed -i '/get_user_arg_ptr/,/^}/ { s/^/\/\/ / }' "$TARGET_SUCOMPAT" || true
+          # Fix the return pointer qualifier mismatch for userspace_stack_buffer on line 79
+          sed -i 's/return userspace_stack_buffer(ksud_path, sizeof(ksud_path));/(void)userspace_stack_buffer(ksud_path, sizeof(ksud_path));\n\treturn (char __user *)ksud_path;/g' "$TARGET_SUCOMPAT" || true
+          
+          # Precision replacement: Rename the duplicate function so it never conflicts with Android 16 core symbols
+          sed -i 's/static const char __user \*get_user_arg_ptr(/static const char __user *ksun_get_user_arg_ptr_deprecated(/g' "$TARGET_SUCOMPAT" || true
+          
           echo "sucompat alignment complete."
         fi
         set -e

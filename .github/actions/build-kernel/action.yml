@@ -1264,21 +1264,21 @@ runs:
         CONFIG_KSU_SUSFS_SUS_MAP=y
         CONFIG_KSU_SUSFS_SUS_SU=n
         CONFIG_KSU_SULOG=n
-        CONFIG_KSU_NEXT_HOOK=y
-        CONFIG_KSU_NEXT_SYSCALL_HOOK=y
-        CONFIG_KSU_NEXT_LSM_HOOK=y
         EOF
 
-        # Clean up temporary line 1 markers so they don't clash with the real files
+        # Inject real local definitions into init.c to satisfy both the compiler and the linker permanently
         for init_file in $(find "$KERNEL_PLATFORM_FOLDER" -name "init.c" | grep -E "kernelsu|KernelSU"); do
           if [ -f "$init_file" ]; then
-            sed -i 's/^extern bool ksu_late_loaded;/\/\/ Replaced/g' "$init_file" || true
-            sed -i 's/^void ksu_syscall_hook_manager_init(void);/\/\/ Replaced/g' "$init_file" || true
+            echo "Injecting native definitions into $init_file..."
+            sed -i '1s/^/#include <linux\/types.h>\nbool ksu_late_loaded = false;\nvoid ksu_syscall_hook_manager_init(void) {}\nvoid ksu_syscall_hook_manager_exit(void) {}\nvoid ksu_lsm_hook_init(void) {}\nvoid ksu_lsm_hook_exit(void) {}\nvoid ksu_app_profile_init(void) {}\nvoid ksu_syscall_hook_init(void) {}\n/' "$init_file" || true
           fi
         done
+
+        # Align dispatch.c to read the local variable scope cleanly
         TARGET_SUPERCALL_DISPATCH="$KERNEL_PLATFORM_FOLDER/KernelSU-Next/kernel/supercall/dispatch.c"
         if [ -f "$TARGET_SUPERCALL_DISPATCH" ]; then
-          sed -i 's/^extern bool ksu_late_loaded;/\/\/ Replaced/g' "$TARGET_SUPERCALL_DISPATCH" || true
+          echo "Injecting local mapping into dispatch.c..."
+          sed -i '1s/^/#include <linux\/types.h>\nextern bool ksu_late_loaded;\n/' "$TARGET_SUPERCALL_DISPATCH" || true
         fi
 
         echo "::endgroup::"

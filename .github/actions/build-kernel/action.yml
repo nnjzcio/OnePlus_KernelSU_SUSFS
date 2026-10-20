@@ -2081,6 +2081,9 @@ runs:
         if [ -f "$TARGET_SUCOMPAT" ]; then
           echo "Aligning KernelSU Next sucompat.c structures for Android 16..."
           
+          # Inject mandatory type header and function prototype mapping right at the top line
+          sed -i '1s/^/#include <linux\/types.h>\nextern const char __user *userspace_stack_buffer(const void *buffer, size_t len);\n/' "$TARGET_SUCOMPAT" || true
+          
           # Fix the return pointer qualifier mismatch for userspace_stack_buffer on line 79
           sed -i 's/return userspace_stack_buffer(ksud_path, sizeof(ksud_path));/(void)userspace_stack_buffer(ksud_path, sizeof(ksud_path));\n\treturn (char __user *)ksud_path;/g' "$TARGET_SUCOMPAT" || true
           

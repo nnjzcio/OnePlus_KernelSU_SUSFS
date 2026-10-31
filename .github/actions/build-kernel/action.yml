@@ -1215,6 +1215,11 @@ runs:
         fi
         
         patch -p1 --forward < "$SUSFS_FOLDER/kernel_patches/50_add_susfs_in_${{ env.SUSFS_KERNEL_BRANCH }}.patch" || true
+
+        # Dump reject files so we can fix them properly
+        echo "===== REJECT FILES ====="
+        find "$COMMON_KERNEL_FOLDER" -name "*.rej" -print -exec cat {} \;
+        echo "===== END REJECT FILES ====="
         
         # SUSFS's OPEN_REDIRECT code unconditionally calls VMA_PAD_START(), which
         # only exists on GKI branches that carry Google's page-size-migration

@@ -694,11 +694,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [[ "${TREE}" == "mixed" ]]; then
-            KERNEL_DIR="msm-kernel"
-          else
-            KERNEL_DIR="common"
-          fi
+          KERNEL_DIR="common"
           cd "${ROOT_DIR}/${KERNEL_DIR}"
           touch arch/arm64/configs/modules.config
       
@@ -706,11 +702,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [[ "${TREE}" == "mixed" ]]; then
-            KERNEL_DIR="msm-kernel"
-          else
-            KERNEL_DIR="common"
-          fi
+          KERNEL_DIR="common"
           cd "${ROOT_DIR}/${KERNEL_DIR}"
       
           # Realtek
@@ -773,11 +765,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [[ "${TREE}" == "mixed" ]]; then
-            KERNEL_DIR="msm-kernel"
-          else
-            KERNEL_DIR="common"
-          fi
+          KERNEL_DIR="common"
           cd "${ROOT_DIR}/${KERNEL_DIR}/drivers/net/wireless/realtek/"
           rm -rf rtw88
           git clone https://github.com/lwfinger/rtw88.git

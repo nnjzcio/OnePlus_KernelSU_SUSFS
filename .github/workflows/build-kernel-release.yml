@@ -694,16 +694,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          KERNEL_DIR="${GITHUB_WORKSPACE}/kernel_platform/common"
-          cd "${KERNEL_DIR}"
+          cd "${COMMON_KERNEL_FOLDER}"
           touch arch/arm64/configs/modules.config
       
       - name: Add nethunter specific drivers as modules
         shell: bash
         run: |
           set -euo pipefail
-          KERNEL_DIR="${GITHUB_WORKSPACE}/kernel_platform/common"
-          cd "${KERNEL_DIR}"
+          cd "${COMMON_KERNEL_FOLDER}"
       
           # Realtek
           ./scripts/config --file arch/arm64/configs/modules.config \
@@ -765,8 +763,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          KERNEL_DIR="${GITHUB_WORKSPACE}/kernel_platform/common"
-          cd "${KERNEL_DIR}/drivers/net/wireless/realtek/"
+          cd "${COMMON_KERNEL_FOLDER}/drivers/net/wireless/realtek/"
           rm -rf rtw88
           git clone https://github.com/lwfinger/rtw88.git
           sed -i 's/$(CONFIG_RTW88)/m/g' Makefile
